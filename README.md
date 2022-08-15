@@ -256,22 +256,40 @@ kpt alpha repo register \
 It is also possible to set a different branch and directory for packages within
 the repository; see `kpt alpha repo register --help` for more.
 
+## Create a Workload Cluster
+
+Workload clusters are  those clusters that do not contain the Nephio system itself,
+but instead are intended to run the workloads deployed via Nephio.
+
+```
+# Create a workload cluster
+gcloud container clusters create-auto --region us-central1 nephio-edge-01
+# This will take a few minutes
+# Once it returns, configure kubectl with the credentials for the cluster
+gcloud container clusters get-credentials --region us-central1 nephio-edge-01
+```
+
 ## Installing Config Sync in Workload Clusters
 
-Workload clusters - those clusters that do not contain the Nephio system itself,
-but instead are intended to run the workloads deployed via Nephio - must run
-Config Sync to get their workloads from their deployment repositories.
+Workload clusters must run Config Sync to get their workloads from their deployment repositories.
 
 The package
-[nephio-configsync](https://github.com/nephio-project/nephio-packages.git/nephio-configsync)
+[nephio-configsync](https://github.com/nephio-project/nephio-packages/tree/main/nephio-configsync)
 is intended for installing Config Sync in those clusters. To use this package,
 you will need to update the RootSync resource with the repository and
 authentication needed for your environment.
 
 Example:
 ```
-kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages.git/nephio-configsync test-deploy-edge-01
-kpt fn render test-deploy-edge-01
-kpt live init test-deploy-edge-01
-kpt live --context=gke_jbelamaric-dev_us-central1_nephio-edge-01 apply test-deploy-edge-01 --reconcile-timeout=15m --output=table
+kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages.git/nephio-configsync nephio-test-deploy-01
+# Replace the repository name in rootsync.yaml with the $GITHUB_USER
+kpt fn eval nephio-test-deploy-01 \
+  --save \
+  --type mutator \
+  --image gcr.io/kpt-fn/search-replace:v0.2.0 \
+  -- by-path=spec.git.repo by-value-regex='https://github.com/[a-zA-Z0-9-]+/(.*)' \
+  put-value="https://github.com/${GITHUB_USER}/\${1}"
+kpt fn render nephio-test-deploy-01
+kpt live init nephio-test-deploy-01
+kpt live apply nephio-test-deploy-01 --reconcile-timeout=15m --output=table
 ```
