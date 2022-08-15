@@ -267,13 +267,13 @@ kpt alpha repo register \
 It is also possible to set a different branch and directory for packages within
 the repository; see `kpt alpha repo register --help` for more.
 
-## Create a Workload Cluster
+## Creating a Workload Cluster
 
 Workload clusters are  those clusters that do not contain the Nephio system itself,
 but instead are intended to run the workloads deployed via Nephio.
 
 ```
-# Creatinge a workload cluster
+# Create a workload cluster
 gcloud container clusters create-auto --region us-central1 nephio-edge-01
 # This will take a few minutes
 # Once it returns, configure kubectl with the credentials for the cluster
@@ -320,7 +320,7 @@ config-management-system       root-reconciler-nephio-workload-cluster-sync-679d
 
 ## Deploying a Package Workload
 We have two options to provision a sample workload.
-  * Use the Nephio Web UI in case you followed the steps in [Installing the Nephio Web UI](#installing-the-web-ui) above, or.
+  * Use the Nephio Web UI in case you followed the steps in [Installing the Nephio Web UI](#installing-the-web-ui) above, or
   * Use `kpt` and `git` to provision the workload from the command line.
 
 [Installing the Nephio Web UI](#installing-the-web-ui) (as described above) was optional.
