@@ -48,7 +48,7 @@ To install and run Nephio, you will need:
 After that, Nephio will be ready for use.
 
 ### Testing Steps
-  1. [Createa Workload Cluster](#creating-a-workload-cluster)
+  1. [Create a Workload Cluster](#creating-a-workload-cluster)
   1. [Install Config Sync in Workload Clusters](#installing-config-sync-in-workload-clusters)
   1. [Deploy a Package Workload](#deploying-a-package-workload)
 
@@ -273,7 +273,7 @@ Workload clusters are  those clusters that do not contain the Nephio system itse
 but instead are intended to run the workloads deployed via Nephio.
 
 ```
-# Create a workload cluster
+# Creatinge a workload cluster
 gcloud container clusters create-auto --region us-central1 nephio-edge-01
 # This will take a few minutes
 # Once it returns, configure kubectl with the credentials for the cluster
@@ -320,11 +320,11 @@ config-management-system       root-reconciler-nephio-workload-cluster-sync-679d
 
 ## Deploying a Package Workload
 We have two options to provision a sample workload.
-  * Use the Web UI we configured above, or
-  * Use kpt and git to provision the workload from the command line.
+  * Use the Nephio Web UI in case you followed the steps in [Installing the Nephio Web UI](#installing-the-web-ui) above, or.
+  * Use `kpt` and `git` to provision the workload from the command line.
 
-As described above [Installing the Nephio Web UI](#installing-the-web-ui) was optional.
-Hence, we will use kpt and git to provision the workload.
+[Installing the Nephio Web UI](#installing-the-web-ui) (as described above) was optional.
+Therefore, we will use `kpt` and `git` to provision the workload.
 
 Example:
 ```
