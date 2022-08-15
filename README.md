@@ -47,6 +47,11 @@ To install and run Nephio, you will need:
 
 After that, Nephio will be ready for use.
 
+### Testing Steps
+  1. [Createa Workload Cluster](#creating-a-workload-cluster)
+  1. [Install Config Sync in Workload Clusters](#installing-config-sync-in-workload-clusters)
+  1. [Deploy a Package Workload](#deploying-a-package-workload)
+
 ## Creating a GKE Cluster
 
 These instructions are for GKE Autopilot. You can use any Kubernetes cluster,
@@ -77,6 +82,12 @@ gcloud container clusters create-auto --region us-central1 nephio
 # This will take a few minutes
 # Once it returns, configure kubectl with the credentials for the cluster
 gcloud container clusters get-credentials --region us-central1 nephio
+
+# See the nodes in your new cluster
+kubectl get nodes
+NAME                                            STATUS   ROLES    AGE    VERSION
+gk3-nephio-default-pool-0e8b5852-c1w5   Ready    <none>   1m5s   v1.22.10-gke.600
+gk3-nephio-default-pool-792b3c85-p0f4   Ready    <none>   1m5s   v1.22.10-gke.600
 ```
 
 ## Installing the Server Components
@@ -267,6 +278,12 @@ gcloud container clusters create-auto --region us-central1 nephio-edge-01
 # This will take a few minutes
 # Once it returns, configure kubectl with the credentials for the cluster
 gcloud container clusters get-credentials --region us-central1 nephio-edge-01
+
+# See the nodes in your new cluster
+kubectl get nodes
+NAME                                            STATUS   ROLES    AGE    VERSION
+gk3-nephio-edge-01-default-pool-0e8b5852-c1w5   Ready    <none>   1m5s   v1.22.10-gke.600
+gk3-nephio-edge-01-default-pool-792b3c85-p0f4   Ready    <none>   1m5s   v1.22.10-gke.600
 ```
 
 ## Installing Config Sync in Workload Clusters
@@ -282,14 +299,59 @@ authentication needed for your environment.
 Example:
 ```
 kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages.git/nephio-configsync nephio-test-deploy-01
-# Replace the repository name in rootsync.yaml with the $GITHUB_USER
+# Replace the repository name in rootsync.yaml with the $GITHUB_USERNAME
 kpt fn eval nephio-test-deploy-01 \
   --save \
   --type mutator \
   --image gcr.io/kpt-fn/search-replace:v0.2.0 \
   -- by-path=spec.git.repo by-value-regex='https://github.com/[a-zA-Z0-9-]+/(.*)' \
-  put-value="https://github.com/${GITHUB_USER}/\${1}"
+  put-value="https://github.com/${GITHUB_USERNAME}/\${1}"
 kpt fn render nephio-test-deploy-01
 kpt live init nephio-test-deploy-01
 kpt live apply nephio-test-deploy-01 --reconcile-timeout=15m --output=table
+
+# Verify that the config sync pods are running
+kubectl get pods --all-namespaces | grep config
+config-management-monitoring   otel-collector-5b8d5d8d8f-8qs2k                                 1/1     Running   0          1m
+config-management-system       config-management-operator-6d7867f9f5-xb9cn                     1/1     Running   0          3m
+config-management-system       reconciler-manager-c6c8cf7f6-9x7vr                              2/2     Running   0          1m
+config-management-system       root-reconciler-nephio-workload-cluster-sync-679dd89788-mkl8x   4/4     Running   0          1m
+```
+
+## Deploying a Package Workload
+We have two options to provision a sample workload.
+  * Use the Web UI we configured above, or
+  * Use kpt and git to provision the workload from the command line.
+
+As described above [Installing the Nephio Web UI](#installing-the-web-ui) was optional.
+Hence, we will use kpt and git to provision the workload.
+
+Example:
+```
+git clone https://github.com/${GITHUB_USERNAME}/nephio-test-deploy-01.git caching-dns
+cd caching-dns
+
+# Get the package for deployment
+kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages/tree/main/coredns-caching-scaled scaled
+kpt fn render scaled
+
+# Check out the rendered package
+kpt pkg tree scaled
+Package "scaled"
+├── [Kptfile]  Kptfile scaled
+├── [clusterscaleprofile.yaml]  ClusterScaleProfile scale-profile
+├── [corefile.yaml]  ConfigMap scaled/coredns-caching
+├── [deployment.yaml]  Deployment scaled/coredns-caching
+├── [fn-config-apply-scale-profile.yaml]  ApplyClusterScaleProfile fn-config-apply-scale-profile
+├── [package-context.yaml]  ConfigMap kptfile.kpt.dev
+└── [service.yaml]  Service scaled/coredns-caching
+
+# Commit and push the package
+git add scaled && git commit -m "Initial pkg for deployment"
+git push origin main
+
+# Verify that the pod is running
+kubectl get pods -n scaled
+NAME                               READY   STATUS    RESTARTS   AGE
+coredns-caching-757c486c84-xlbfj   1/1     Running   0          32s
 ```
