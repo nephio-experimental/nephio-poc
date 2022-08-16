@@ -249,9 +249,8 @@ kpt alpha repo register \
   https://github.com/${GITHUB_USERNAME}/nephio-test-catalog-01.git
 ```
 
-When registering a *deployment* repository, the same command is used, except it
+When registering a *deployment* repository for the Workload Cluster that we are going to [create later](#creating-a-workload-cluster). We use the same command, except it
 must include the `--deployment` flag:
-
 ```
 GITHUB_USERNAME=<your github username>
 GITHUB_TOKEN=<GitHub Personal Access Token>
@@ -261,7 +260,23 @@ kpt alpha repo register \
   --namespace default \
   --repo-basic-username=${GITHUB_USERNAME} \
   --repo-basic-password=${GITHUB_TOKEN} \
-  https://github.com/${GITHUB_USERNAME}/nephio-test-deploy-01.git
+  https://github.com/${GITHUB_USERNAME}/nephio-edge-cluster-01.git
+```
+
+Last but not least we also register a "blueprint" repository that contains the sample packages we will use in this PoC.
+```
+kpt alpha repo register \
+  --namespace default \
+  https://github.com/nephio-project/nephio-packages.git
+```
+
+You should be able to list the three registered repositories.
+```
+kpt alpha repo get
+NAME                     TYPE   CONTENT   DEPLOYMENT   READY   ADDRESS
+nephio-edge-cluster-01   git    Package   true         True    https://github.com/GITHUB_USERNAME/nephio-edge-cluster-01
+nephio-packages          git    Package                True    https://github.com/nephio-project/nephio-packages.git
+nephio-test-catalog-01   git    Package                True    https://github.com/GITHUB_USERNAME/nephio-test-catalog-01.git
 ```
 
 It is also possible to set a different branch and directory for packages within
@@ -274,16 +289,16 @@ but instead are intended to run the workloads deployed via Nephio.
 
 ```
 # Create a workload cluster
-gcloud container clusters create-auto --region us-central1 nephio-edge-01
+gcloud container clusters create-auto --region us-central1 nephio-edge-cluster-01
 # This will take a few minutes
 # Once it returns, configure kubectl with the credentials for the cluster
-gcloud container clusters get-credentials --region us-central1 nephio-edge-01
+gcloud container clusters get-credentials --region us-central1 nephio-edge-cluster-01
 
 # See the nodes in your new cluster
 kubectl get nodes
-NAME                                            STATUS   ROLES    AGE    VERSION
-gk3-nephio-edge-01-default-pool-0e8b5852-c1w5   Ready    <none>   1m5s   v1.22.10-gke.600
-gk3-nephio-edge-01-default-pool-792b3c85-p0f4   Ready    <none>   1m5s   v1.22.10-gke.600
+NAME                                                  STATUS   ROLES    AGE     VERSION
+gk3-nephio-edge-cluster--default-pool-32693aa1-2d8k   Ready    <none>   1m26s   v1.22.10-gke.600
+gk3-nephio-edge-cluster--default-pool-8a128e1b-cl5l   Ready    <none>   1m26s   v1.22.10-gke.600
 ```
 
 ## Installing Config Sync in Workload Clusters
@@ -294,21 +309,29 @@ The package
 [nephio-configsync](https://github.com/nephio-project/nephio-packages/tree/main/nephio-configsync)
 is intended for installing Config Sync in those clusters. To use this package,
 you will need to update the RootSync resource with the repository and
-authentication needed for your environment.
+authentication needed for your environment. 
+
+You can use kpt functions to update the RootSync resource - or you can simply edit the file with your text editor. 
+The function method is amenable to automation. You can inject the `GITHUB_USERNAME` environment variable and automate the process as illustrated below.
+
+On the other hand, you could update the resource manually. You can pull the package, edit it with your GitHub username, and then push it to your private catalog. 
+
+In fact, there is no reason you can't just change the resources as you wish, directly.
+The Configuration as Data approach is open to the mindset of "you can edit the config either via code or manually". 
 
 Example:
 ```
-kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages.git/nephio-configsync nephio-test-deploy-01
+kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages.git/nephio-configsync nephio-edge-cluster-01
 # Replace the repository name in rootsync.yaml with the $GITHUB_USERNAME
-kpt fn eval nephio-test-deploy-01 \
+kpt fn eval nephio-edge-cluster-01 \
   --save \
   --type mutator \
   --image gcr.io/kpt-fn/search-replace:v0.2.0 \
   -- by-path=spec.git.repo by-value-regex='https://github.com/[a-zA-Z0-9-]+/(.*)' \
   put-value="https://github.com/${GITHUB_USERNAME}/\${1}"
-kpt fn render nephio-test-deploy-01
-kpt live init nephio-test-deploy-01
-kpt live apply nephio-test-deploy-01 --reconcile-timeout=15m --output=table
+kpt fn render nephio-edge-cluster-01
+kpt live init nephio-edge-cluster-01
+kpt live apply nephio-edge-cluster-01 --reconcile-timeout=15m --output=table
 
 # Verify that the config sync pods are running
 kubectl get pods --all-namespaces | grep config
@@ -321,37 +344,47 @@ config-management-system       root-reconciler-nephio-workload-cluster-sync-679d
 ## Deploying a Package Workload
 We have two options to provision a sample workload.
   * Use the Nephio Web UI in case you followed the steps in [Installing the Nephio Web UI](#installing-the-web-ui) above, or
-  * Use `kpt` and `git` to provision the workload from the command line.
+  * Use `kpt` to provision the workload from the command line.
 
 [Installing the Nephio Web UI](#installing-the-web-ui) (as described above) was optional.
-Therefore, we will use `kpt` and `git` to provision the workload.
+Therefore, we will use `kpt` to provision the workload.
 
 Example:
 ```
-git clone https://github.com/${GITHUB_USERNAME}/nephio-test-deploy-01.git caching-dns
-cd caching-dns
+# Important! We need to set our Kubernetes context back to the nephio cluster first!
+kubectl config get-contexts | grep nephio
+* gke_nephio-poc_us-central1_nephio-edge-cluster-01   gke_nephio-poc_us-central1_nephio-edge-cluster-01   gke_nephio-poc_us-central1_nephio-edge-cluster-01
+  gke_nephio-poc_us-central1_nephio                   gke_nephio-poc_us-central1_nephio                   gke_nephio-poc_us-central1_nephio                       
 
-# Get the package for deployment
-kpt pkg get --for-deployment https://github.com/nephio-project/nephio-packages/tree/main/coredns-caching-scaled scaled
-kpt fn render scaled
+# Your contexts will be named slightly differently. Make sure you adjust the following command accordingly.
+kubectl config use-context gke_nephio-poc_us-central1_nephio
 
-# Check out the rendered package
-kpt pkg tree scaled
-Package "scaled"
-├── [Kptfile]  Kptfile scaled
-├── [clusterscaleprofile.yaml]  ClusterScaleProfile scale-profile
-├── [corefile.yaml]  ConfigMap scaled/coredns-caching
-├── [deployment.yaml]  Deployment scaled/coredns-caching
-├── [fn-config-apply-scale-profile.yaml]  ApplyClusterScaleProfile fn-config-apply-scale-profile
-├── [package-context.yaml]  ConfigMap kptfile.kpt.dev
-└── [service.yaml]  Service scaled/coredns-caching
+# Get the remote packages available from the registered repositories (output trunkated to focus on coredns-caching package).
+kpt alpha rpkg get
+NAME                                                              PACKAGE                  REVISION   LATEST   LIFECYCLE   REPOSITORY
+nephio-packages-e01d890d4c85fc62299d956829ffe948d712bd76          coredns-caching          main       false    Published   nephio-packages
+nephio-packages-edfea244e9255e476de3dcc00b56003104f1d4cd          coredns-caching          v1         true     Published   nephio-packages
+...
 
-# Commit and push the package
-git add scaled && git commit -m "Initial pkg for deployment"
-git push origin main
+# Clone the latest coredns-caching revision from the blueprint catalog repo to the deployment repo.
+kpt alpha rpkg clone nephio-packages-e023d912035d8a781900c7e283762a7a62d65d0d dnscache --repository nephio-edge-cluster-01 -n default
 
-# Verify that the pod is running
-kubectl get pods -n scaled
+# The package is now ready in the deployment repo in the Draft state.
+kpt alpha rpkg get
+NAME                                                              PACKAGE                  REVISION   LATEST   LIFECYCLE   REPOSITORY
+nephio-edge-cluster-01-ffc042a02460c770a3678f4a6b9e3664f9f38983   dnscache                 v1         false    Draft       nephio-edge-cluster-01
+nephio-packages-e01d890d4c85fc62299d956829ffe948d712bd76          coredns-caching          main       false    Published   nephio-packages
+nephio-packages-edfea244e9255e476de3dcc00b56003104f1d4cd          coredns-caching          v1         true     Published   nephio-packages
+
+# Propose the package
+kpt alpha rpkg propose nephio-edge-cluster-01-ffc042a02460c770a3678f4a6b9e3664f9f38983 -n default
+
+# Approve the package (publish it)
+kpt alpha rpkg approve nephio-edge-cluster-01-ffc042a02460c770a3678f4a6b9e3664f9f38983 -n default
+
+# Check that the package has been deployed to your Workload Cluster (remember to switch the context back to the workload cluster first)
+kubectl config use-context gke_nephio-poc_us-central1_nephio-edge-cluster-01 
+kubectl get pods -n dnscache
 NAME                               READY   STATUS    RESTARTS   AGE
-coredns-caching-757c486c84-xlbfj   1/1     Running   0          32s
+coredns-caching-757c486c84-xw2gt   1/1     Running   0          3m57s
 ```
