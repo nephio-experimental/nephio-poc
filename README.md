@@ -359,7 +359,7 @@ kubectl config get-contexts | grep nephio
 # Your contexts will be named slightly differently. Make sure you adjust the following command accordingly.
 kubectl config use-context gke_nephio-poc_us-central1_nephio
 
-# Get the remote packages available from the registered repositories (output trunkated to focus on coredns-caching package).
+# Get the remote packages available from the registered repositories (output truncated to focus on coredns-caching package).
 kpt alpha rpkg get
 NAME                                                              PACKAGE                  REVISION   LATEST   LIFECYCLE   REPOSITORY
 nephio-packages-e01d890d4c85fc62299d956829ffe948d712bd76          coredns-caching          main       false    Published   nephio-packages
