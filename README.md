@@ -26,7 +26,7 @@ instructions will help you get a pre-release version up.
 To install and run Nephio, you will need:
   * A Kubernetes cluster.
   * The Kubernetes CLI client, [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl).
-  * The Kpt CLI client, [kpt](https://kpt.dev/installation/kpt-cli).
+  * The Kpt CLI client, [kpt](https://kpt.dev/installation/kpt-cli) version v1.0.0-beta.15 or higher.
   * A Git repository provider. As of now, GitHub and Google Cloud Source
     Repositories are supported.
   * An OAuth 2.0 client ID, if you wish to install the GUI. The GUI only works
