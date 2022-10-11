@@ -204,7 +204,7 @@ the intended consumption model of the packages (blueprints) in each type of
 repository.
 
   * Blueprint repositories contain packages that could not be (or at least are
-    not intended to be) directly instantiated on a Kuberentes cluster. These
+    not intended to be) directly instantiated on a Kubernetes cluster. These
     packages require additional customization in order to become actual, running
     workloads on a cluster.
   * Deployment repositories contain packages that are fully prepared for
@@ -367,7 +367,7 @@ nephio-packages-edfea244e9255e476de3dcc00b56003104f1d4cd          coredns-cachin
 ...
 
 # Clone the latest coredns-caching revision from the blueprint catalog repo to the deployment repo.
-kpt alpha rpkg clone nephio-packages-e023d912035d8a781900c7e283762a7a62d65d0d dnscache --repository nephio-edge-cluster-01 -n default
+kpt alpha rpkg clone nephio-packages-edfea244e9255e476de3dcc00b56003104f1d4cd dnscache --repository nephio-edge-cluster-01 -n default
 
 # The package is now ready in the deployment repo in the Draft state.
 kpt alpha rpkg get
