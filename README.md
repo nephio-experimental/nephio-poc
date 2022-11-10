@@ -119,43 +119,14 @@ kpt live apply nephio-system --reconcile-timeout=15m --output=table
 ## Installing the Web UI
 
 Currently, we can just run the prototype Config-as-Data UI from the [kpt](https://github.com/GoogleContainerTools/kpt)
-project. In time we will build our own UI. This prototype GUI only works with
-GKE, because the Web UI uses the OAuth user's identity when talking to the
-cluster.
-
-### Creating an OAuth 2.0 Client ID
-
-The prototype web interface needs a way to authenticate users. Currently, it
-uses Google OAuth 2.0, which requires a client ID and allows you to authenticate
-against the GCP identity service. If you wish to try out the prototype UI, you
-will need to create a client ID. To create your client ID and secret:
-
-1. Sign in to the [Google Console](https://console.cloud.google.com)
-2. Select or create a new project from the dropdown menu on the top bar
-3. Navigate to
-   [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials)
-4. Click **Create Credentials** and choose `OAuth client ID`
-5. Configure an OAuth consent screen, if required
-   - For scopes, select `openid`, `auth/userinfo.email`,
-     `auth/userinfo.profile`, and `auth/cloud-platform`.
-   - Add any users that will want access to the UI if using External user type
-6. Set **Application Type** to `Web Application` with these settings:
-   - `Name`: Nephio Web UI
-   - `Authorized JavaScript origins`: http://localhost:7007
-   - `Authorized redirect URIs`:
-     http://localhost:7007/api/auth/google/handler/frame
-7. Click Create
-8. Copy the client ID and client secret displayed
+project. In time we will build our own UI.
 
 ### Installing the Web UI Package
 
-The prototype UI is a separate package, so let's install that now. First, we
-need to pre-provision the namespace and the secret with the OAuth 2.0 client ID
-and client secret.
+The prototype UI is a separate package, so let's install that now.
 
 ```
 kubectl create ns nephio-webui
-kubectl create secret generic -n nephio-webui cad-google-oauth-client --from-literal=client-id=CLIENT_ID_PLACEHOLDER --from-literal=client-secret=CLIENT_SECRET_PLACEHOLDER
 ```
 
 Next, we fetch the package, and then execute `kpt fn render` to execute the
