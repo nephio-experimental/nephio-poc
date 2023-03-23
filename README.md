@@ -1,3 +1,15 @@
+# NOTE: ARCHIVED REPOSITORY
+
+This repository has been archived as of March 23, 2023. The instructions below probably
+will not work.
+
+Up through release of R1 (planned for mid-2023), please refer to the
+[2022 ONE Summit Workshop](https://github.com/nephio-project/one-summit-22-workshop)
+repository to see a proof-of-concept.
+
+After that refer to the [nephio](https://github.com/nephio-project/nephio) repository
+for more information.
+
 # Nephio Proof-of-Concept
 
 The Nephio project is building a Kubernetes-based automation platform for
